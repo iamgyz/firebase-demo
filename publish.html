@@ -1,0 +1,94 @@
+<!--
+Author: guanggyz@pet.cs.nctu.edu.tw
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Rotation Demo</title>
+<link rel="stylesheet" href="//code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.css">
+<script src="//code.jquery.com/jquery-1.7.1.min.js"></script>
+<script src="//code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.js"></script>
+<script src="//cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+</head>
+<body>
+
+<div id="Demo" data-url="Demo" data-role="page">
+<div data-role="header" data-theme="c">
+<h1>Publisher</h1>
+</div>
+
+<div data-role="content">
+    <div style="text-align:center">
+        A simple demo for <strong>Firebase!</strong><br>
+    </div>
+    <hr>
+<div data-role="fieldcontain">
+<label for="upload">Status</label>
+<select name="upload" id="upload" data-role="slider">
+<option value="OFF" selected="selected">OFF</option>
+<option value="ON">ON</option>
+</select>
+</div>
+<div data-role="fieldcontain">
+<label for="time">Update Interval (ms)</label>
+<input type="range" name="time" id="time" value="100" min="100" max="1000" />
+</div>
+<hr>
+<div data-role="fieldcontain">
+    Information:<br>
+    <span name="information" id="information"></span>
+</div>
+
+</div>
+
+<div data-role="footer" data-position="fixed">
+<h1>PET-LAB</h1>
+</div>
+</div>
+
+<script>
+$( document ).ready(function() {
+    var updateTime = 100;//update every 100 ms in default
+    var lastUpdate = new Date();
+    var isUploading = false;
+    var dataRef = new Firebase("https://iphone-motion.firebaseIO.com/");
+
+    $('#time').change(function(){
+        updateTime = parseInt($(this).val());
+        console.log("Update time = ",updateTime);
+    })
+
+    if (window.DeviceMotionEvent)   {
+        window.addEventListener('devicemotion', deviceMotionHandler, false);
+    }else{
+        $( "#information" ).html( "DeviceMotion NOT supported" );
+    }
+
+    function deviceMotionHandler(event)
+    {
+        var accX = event.accelerationIncludingGravity.x;
+        var accY = event.accelerationIncludingGravity.y;
+        var accZ = event.accelerationIncludingGravity.z;
+
+        var curTime = new Date();
+        if(curTime - lastUpdate > updateTime && $('#upload :selected').val()=='ON' ){
+            lastUpdate = curTime;
+            //send to firebase
+            dataRef.update({
+                x: accX,
+                y: accY,
+                z: accZ
+                },function(error){
+                   console.log("Sent! status = ",error);
+                    var info = "aX:"+accX.toFixed(2)+"  aY:"+accY.toFixed(2)+"  aZ:"+accZ.toFixed(2);
+                    $('#information').html(info);
+            });
+        }
+    }//function
+});
+</script>
+
+</body>
+</html>

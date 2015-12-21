@@ -1,0 +1,132 @@
+<!--
+Author: guanggyz@pet.cs.nctu.edu.tw
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Rotation Demo</title>
+<link rel="stylesheet" href="//code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.css">
+<script src="//code.jquery.com/jquery-1.7.1.min.js"></script>
+<script src="//code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.js"></script>
+<script src="//cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+</head>
+<body>
+
+<div id="Demo" data-url="Demo" data-role="page">
+<div data-role="header" data-theme="c">
+<h1>Subscriber</h1>
+</div>
+
+<div data-role="content">
+    <div style="text-align:center">
+        A simple demo for <strong>Firebase!</strong><br>
+    </div>
+    <hr>
+    <div style='text-align:center'>
+        <img id='iphone' src='iphone.png'/>
+    </div>
+    <div data-role="footer" data-position="fixed">
+        <h1>PET-LAB</h1>
+    </div>
+</div>
+<script>
+$( document ).ready(function() {
+
+    var gravity = 9.8;
+    var maxDeg = 90.0;
+    var lastZ = 0;
+    var lastX = 0;
+	/*  Mapping function
+     *  -9.8 = -90
+     *     0 =  0
+     *   9.8 = 90
+     */
+    var accX2deg = function(acc){
+        var deg;
+        var X = parseFloat(acc.x);
+        var Y = parseFloat(acc.y);
+        deg = maxDeg * (X / gravity);
+        if(Y > 0)
+            deg = 180 - deg;
+        var diff = Math.abs(deg - lastZ) ;
+        //only rotate if diff > 1
+        if(diff > 1 ){
+            lastZ = deg;
+        }else{
+            deg = lastZ;
+        }
+        return deg;
+    };
+	/*  Mapping function
+     *  -9.8 = 90
+     *     0 =  0
+     *   9.8 = -90
+     */
+    var accZ2deg = function(acc){
+        var deg = 0;
+        var Z = parseFloat(acc.z);
+        var Y = parseFloat(acc.y);
+        if(Z< -0.2 && Y <= 0)
+            deg = 45 * (Z / gravity) *(-1);
+        return deg;
+    }
+
+    var dataRef = new Firebase('https://iphone-motion.firebaseIO.com/');
+        $('#push').click(function(){
+            var newPostRef = dataRef.push(
+            {
+                msg: $('#input').val()
+            },function(err){
+                if(err)
+                {
+                    console.log("Error with sending data");
+                }
+                else
+                {
+                    console.log("Push key = "+newPostRef.key());
+                }
+            });
+        });
+        // Attach an asynchronous callback to read the data at our posts reference
+        dataRef.on("value", function(snapshot) {
+            console.log(snapshot.val());
+            console.log(accX2deg(snapshot.val().x));
+            //only rotate Z-axis in this demo
+            $('#iphone').rotate(0,0,accX2deg(snapshot.val()));
+        }, function (errorObject) {
+          console.log("The read failed: " + errorObject.code);
+	});
+
+    function getTransformProperty(element) {
+        var properties = ['transform', 'WebkitTransform',
+                          'MozTransform', 'msTransform',
+                          'OTransform'];
+        var p;
+        while (p = properties.shift()) {
+            if (element.style[p] !== undefined) {
+                return p;
+            }
+        }
+        return false;
+    }
+    $.fn.rotate = function(valueX,valueY,valueZ){
+        //only handle first element
+        var elem = this[0];
+        valueX = parseInt(valueX);
+        valueY = parseInt(valueY);
+        valueZ = parseInt(valueZ);
+        var property = getTransformProperty(elem);
+        if (property) {
+            var style = 'rotateX(' + valueX%360 + 'deg) rotateY(' + valueY%360 + 'deg) rotateZ(' + valueZ%360 + 'deg)';
+            elem.style[property] = style;
+            console.log(style);
+        } else {
+            return '';
+        }
+    }
+});
+</script>
+</body>
+</html>
